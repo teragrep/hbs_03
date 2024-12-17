@@ -258,6 +258,7 @@
             <!-- maven -->
             <exclude>pom.xml</exclude>
             <exclude>eclipse-java-formatter.xml</exclude>
+            <exclude>license-header</exclude>
             <!-- readme -->
             <exclude>README.adoc</exclude>
             <!-- resources -->
