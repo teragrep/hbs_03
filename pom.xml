@@ -38,6 +38,12 @@
     <sha1></sha1>
   </properties>
   <dependencies>
+    <!-- HBase -->
+    <dependency>
+      <groupId>org.apache.hbase</groupId>
+      <artifactId>hbase-client</artifactId>
+      <version>3.0.0-alpha-4</version>
+    </dependency>
     <!-- Logging -->
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -141,13 +147,24 @@
             </goals>
             <configuration>
               <rules>
+                <bannedDependencies>
+                  <excludes>
+                    <!-- We generally do not want to use junit4, only junit5 -->
+                    <exclude>junit:junit</exclude>
+                  </excludes>
+                </bannedDependencies>
                 <requireMavenVersion>
                   <version>3.2.5</version>
                 </requireMavenVersion>
                 <requireJavaVersion>
                   <version>[11,12)</version>
                 </requireJavaVersion>
-                <banDynamicVersions></banDynamicVersions>
+                <banDynamicVersions>
+                  <ignores>
+                    <!-- Allow only local development builds by default -->
+                    <ignore>com.teragrep:*:0.0.1-SNAPSHOT</ignore>
+                  </ignores>
+                </banDynamicVersions>
                 <requirePluginVersions>
                   <message>All plugins are required to contain specific version.</message>
                   <unCheckedPluginList>org.apache.maven.plugins:maven-site-plugin,org.apache.maven.plugins:maven-resources-plugin,org.apache.maven.plugins:maven-clean-plugin,org.apache.maven.plugins:maven-install-plugin,org.apache.maven.plugins:maven-deploy-plugin,org.apache.maven.plugins:maven-compiler-plugin,org.apache.maven.plugins:maven-jar-plugin</unCheckedPluginList>
@@ -164,7 +181,7 @@
       <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
-        <version>2.30.0</version>
+        <version>2.43.0</version>
         <configuration>
           <java>
             <eclipse>
@@ -258,7 +275,6 @@
             <!-- maven -->
             <exclude>pom.xml</exclude>
             <exclude>eclipse-java-formatter.xml</exclude>
-            <exclude>license-header</exclude>
             <!-- readme -->
             <exclude>README.adoc</exclude>
             <!-- resources -->
@@ -502,7 +518,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M5</version>
+        <version>3.3.1</version>
         <configuration>
           <parallel>all</parallel>
           <useUnlimitedThreads>true</useUnlimitedThreads>
@@ -516,19 +532,9 @@
     </plugins>
   </build>
   <profiles>
+    <!-- Required when publishing to Maven Central -->
     <profile>
       <id>publish-maven-central</id>
-      <distributionManagement>
-        <repository>
-          <id>ossrh</id>
-          <name>Central Repository OSSRH</name>
-          <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-        <snapshotRepository>
-          <id>ossrh</id>
-          <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-      </distributionManagement>
       <build>
         <plugins>
           <plugin>
@@ -566,6 +572,7 @@
         </plugins>
       </build>
     </profile>
+    <!-- Required when publishing to GitHub Packages -->
     <profile>
       <id>publish-github-packages</id>
       <distributionManagement>
