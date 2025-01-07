@@ -29,6 +29,7 @@
   </scm>
   <properties>
     <changelist>-SNAPSHOT</changelist>
+    <hbase.verion>2.6.1</hbase.verion>
     <java.version>11</java.version>
     <junit.version>5.10.2</junit.version>
     <maven.compiler.source>11</maven.compiler.source>
@@ -47,7 +48,7 @@
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase-client</artifactId>
-      <version>2.6.1</version>
+      <version>${hbase.verion}</version>
     </dependency>
     <!-- Logging -->
     <dependency>
@@ -78,6 +79,19 @@
       <groupId>nl.jqno.equalsverifier</groupId>
       <artifactId>equalsverifier</artifactId>
       <version>3.17.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.hbase</groupId>
+      <artifactId>hbase-testing-util</artifactId>
+      <version>${hbase.verion}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- hbase-testing-util supports only JUnit 4 -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.2</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
