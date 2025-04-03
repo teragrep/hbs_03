@@ -29,13 +29,18 @@
   </scm>
   <properties>
     <changelist>-SNAPSHOT</changelist>
+    <cnf_01.version>1.3.1</cnf_01.version>
+    <hbase.version>2.6.1</hbase.version>
     <java.version>11</java.version>
+    <jooq.version>3.14.8</jooq.version>
     <junit.version>5.10.2</junit.version>
+    <main.class>com.teragrep.hbs_03.TeragrepMetadataReplication</main.class>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <revision>0.0.1</revision>
     <sha1></sha1>
+    <testcontainers.version>1.20.4</testcontainers.version>
   </properties>
   <dependencies>
     <dependency>
@@ -43,18 +48,71 @@
       <artifactId>mariadb-java-client</artifactId>
       <version>3.5.1</version>
     </dependency>
+    <!-- jooq -->
+    <dependency>
+      <groupId>javax.annotation</groupId>
+      <artifactId>javax.annotation-api</artifactId>
+      <version>1.3.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jooq</groupId>
+      <artifactId>jooq-codegen</artifactId>
+      <version>${jooq.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jooq</groupId>
+      <artifactId>jooq</artifactId>
+      <version>${jooq.version}</version>
+    </dependency>
+    <!-- unsigned data types support -->
+    <dependency>
+      <groupId>org.jooq</groupId>
+      <artifactId>joou</artifactId>
+      <version>0.9.4</version>
+    </dependency>
+    <dependency>
+      <groupId>com.teragrep</groupId>
+      <artifactId>cnf_01</artifactId>
+      <version>${cnf_01.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/org.cactoos/cactoos -->
+    <dependency>
+      <groupId>org.cactoos</groupId>
+      <artifactId>cactoos</artifactId>
+      <version>0.56.1</version>
+    </dependency>
     <!-- HBase -->
     <dependency>
       <groupId>org.apache.hbase</groupId>
       <artifactId>hbase-client</artifactId>
-      <version>2.6.1</version>
+      <version>${hbase.version}</version>
+    </dependency>
+    <!-- HBase testing -->
+    <dependency>
+      <groupId>org.apache.hbase</groupId>
+      <artifactId>hbase-testing-util</artifactId>
+      <version>${hbase.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- avoid dynamic versioning by hbase-server -->
+    <dependency>
+      <groupId>org.glassfish.web</groupId>
+      <artifactId>javax.servlet.jsp</artifactId>
+      <version>2.3.1</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- avoid dynamic versioning by hbase-server -->
+    <dependency>
+      <groupId>org.glassfish</groupId>
+      <artifactId>javax.el</artifactId>
+      <version>3.0.1-b12</version>
+      <scope>test</scope>
     </dependency>
     <!-- Logging -->
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
       <version>1.5.12</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -74,6 +132,25 @@
       <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
+    <!-- test containers -->
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>mariadb</artifactId>
+      <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${testcontainers.version}</version>
+    </dependency>
+    <!-- equals tests -->
     <dependency>
       <groupId>nl.jqno.equalsverifier</groupId>
       <artifactId>equalsverifier</artifactId>
@@ -83,7 +160,6 @@
   </dependencies>
   <build>
     <directory>${project.basedir}/target</directory>
-    <finalName>hbs_03</finalName>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -115,6 +191,22 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.0</version>
+        <configuration>
+          <createDependencyReducedPom>false</createDependencyReducedPom>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <phase>package</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>flatten-maven-plugin</artifactId>
         <version>1.1.0</version>
@@ -139,6 +231,19 @@
           </execution>
         </executions>
       </plugin>
+      <!-- Add main class executable -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.4.2</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>com.teragrep.hbs_03.TeragrepMetadataReplication</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
       <!-- mandatory plugin: enforcer -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -155,7 +260,7 @@
                 <bannedDependencies>
                   <excludes>
                     <!-- We generally do not want to use junit4, only junit5 -->
-                    <exclude>junit:junit</exclude>
+                    <!-- junit 4 allowed as part of testcontainers and hbase test imports -->
                   </excludes>
                 </bannedDependencies>
                 <requireMavenVersion>
@@ -197,6 +302,9 @@
             <licenseHeader>
               <file>${project.basedir}/license-header</file>
             </licenseHeader>
+            <excludes>
+              <exclude>src/main/java/com/teragrep/hbs_03/jooq/generated/**/*.*</exclude>
+            </excludes>
           </java>
           <pom>
             <sortPom>
@@ -279,11 +387,18 @@
             <exclude>settings.xml</exclude>
             <!-- maven -->
             <exclude>pom.xml</exclude>
+            <exclude>dependency-reduced-pom.xml</exclude>
             <exclude>eclipse-java-formatter.xml</exclude>
+            <exclude>rpm/rpm.pom.xml</exclude>
             <!-- readme -->
             <exclude>README.adoc</exclude>
             <!-- resources -->
             <exclude>src/test/resources/*</exclude>
+            <exclude>src/main/resources/hbs_03.service</exclude>
+            <exclude>src/main/resources/hbs_03</exclude>
+            <exclude>src/main/resources/last_processed_id.txt</exclude>
+            <exclude>database/*</exclude>
+            <exclude>add_license_to_generated.sh</exclude>
           </excludes>
         </configuration>
         <executions>
@@ -314,6 +429,9 @@
               <failsOnError>false</failsOnError>
               <checkstyleRules>
                 <module name="Checker">
+                  <module name="BeforeExecutionExclusionFileFilter">
+                    <property name="fileNamePattern" value=".*[\\/]src[\\/]main[\\/]java[\\/]com[\\/]teragrep[\\/]hbs_03[\\/]jooq[\\/]generated[\\/].*$"></property>
+                  </module>
                   <module name="TreeWalker">
                     <module name="ClassMemberImpliedModifier"></module>
                     <module name="CovariantEquals"></module>
@@ -329,7 +447,6 @@
                       <property name="ignoreConstructorParameter" value="true"></property>
                       <property name="ignoreSetter" value="true"></property>
                     </module>
-                    <module name="IllegalCatch"></module>
                     <module name="IllegalImport"></module>
                     <module name="IllegalThrows"></module>
                     <module name="IllegalToken"></module>
@@ -371,6 +488,7 @@
                   <module name="UniqueProperties"></module>
                 </module>
               </checkstyleRules>
+              <excludes>src/main/java/com/teragrep/hbs_03/jooq/generated</excludes>
             </configuration>
           </execution>
           <!-- These are warnings but will not fail the build -->
@@ -385,6 +503,7 @@
               <logViolationsToConsole>true</logViolationsToConsole>
               <failOnViolation>false</failOnViolation>
               <failsOnError>false</failsOnError>
+              <excludes>src/main/java/com/teragrep/hbs_03/jooq/generated</excludes>
               <checkstyleRules>
                 <module name="Checker">
                   <module name="TreeWalker">
@@ -534,12 +653,64 @@
           </statelessTestsetReporter>
         </configuration>
       </plugin>
+      <!-- jooq config -->
+      <plugin>
+        <groupId>org.jooq</groupId>
+        <artifactId>jooq-codegen-maven</artifactId>
+        <version>3.12.4</version>
+        <executions>
+          <execution>
+            <id>jooq-codegen</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <jdbc>
+                <driver>org.mariadb.jdbc.Driver</driver>
+                <url>jdbc:mariadb://localhost:${env.MARIADB_PORT}</url>
+                <user>streamdb</user>
+                <password>streamdb_pass</password>
+              </jdbc>
+              <generator>
+                <database>
+                  <includes>streamdb.log_group|streamdb.host|streamdb.stream|journaldb.host|journaldb.bucket|journaldb.logfile|journaldb.source_system|journaldb.category|journaldb.metadata_value|bloomdb.filtertype</includes>
+                </database>
+                <target>
+                  <packageName>com.teragrep.hbs_03.jooq.generated</packageName>
+                  <directory>src/main/java</directory>
+                </target>
+                <generate>
+                  <generatedAnnotationType>JAVAX_ANNOTATION_GENERATED</generatedAnnotationType>
+                  <routines>true</routines>
+                </generate>
+              </generator>
+              <skip>${jooq.regenerate.skip}</skip>
+              <!-- on schema change set to false to re-render -->
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
   <profiles>
+    <!-- jooq no code generation -->
+    <profile>
+      <id>build-nogenerate</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <properties>
+        <jooq.regenerate.skip>true</jooq.regenerate.skip>
+      </properties>
+    </profile>
     <!-- Required when publishing to Maven Central -->
     <profile>
       <id>publish-maven-central</id>
+      <!-- Skips jooq generation for publishing for now -->
+      <properties>
+        <jooq.regenerate.skip>true</jooq.regenerate.skip>
+      </properties>
       <build>
         <plugins>
           <plugin>
@@ -587,6 +758,10 @@
           <url>https://maven.pkg.github.com/teragrep/hbs_03</url>
         </repository>
       </distributionManagement>
+      <!-- Skips jooq generation for publishing for now -->
+      <properties>
+        <jooq.regenerate.skip>true</jooq.regenerate.skip>
+      </properties>
       <build>
         <plugins>
           <plugin>
